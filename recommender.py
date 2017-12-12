@@ -1,7 +1,5 @@
-# add 3 mult 10/6
-# get alt hosting instead of git/github for data (to thin ledger at every instance)
 # make estimate_rating_prediction() account for users not in train_data
-# use cross-validation if it can maintain order
+# use cross-validation
 # do something (implement correctly or get rid of) with item-similarity stuff
 # what is the type of data received when receiving a new userID with ratings array?
 # functional? what are states I am tracking?
@@ -14,8 +12,8 @@
 import numpy
 import pandas
 
-header = ['userID', 'gameID', 'rating']
-df = pandas.read_csv('boardgame-elite-users.csv', names=header)
+# header = ['userID', 'gameID', 'rating']
+df = pandas.read_csv('inputs/boardgame-elite-users.csv').rename(columns = {'Compiled from boardgamegeek.com by Matt Borthwick':'userID'})
 
 # TRAIN / TEST DATA SPLIT
 from sklearn.model_selection import train_test_split
@@ -39,16 +37,19 @@ def derive_prediction_matrix(ratings_array, similarity, type='user'):
         ratings_diff = (ratings_array - mean_user_rating[:, numpy.newaxis])
         # Generate predictions
         # should divide by the commonly rated gameIDs, pairwise mult
-        pred = mean_user_rating[:, numpy.newaxis] + similarity.dot(ratings_diff) / numpy.array([numpy.abs(user_similarity).sum(axis=1)]).T
+        pred = mean_user_rating[:, numpy.newaxis] + similarity.dot(ratings_diff) / numpy.count_nonzero(numpy.array(train_data_ptable).T, axis = 1)
     # For item similarity, not currently implemented
         pred = pred + mean_user_rating[:, numpy.newaxis]
     elif type == 'item':
         pred = ratings.dot(similarity) / np.array([np.abs(similarity).sum(axis=1)])
     return pred
+
 # new formula to apply in derive_prediction_matrix
 # print(numpy.count_nonzero(numpy.array(train_data_ptable).T, axis = 1)[0])
+
 # OLD formula below (without index)
 # print(numpy.array([numpy.abs(user_similarity).sum(axis=1)]).T[0])
+
 user_prediction_matrix = derive_prediction_matrix(numpy.array(train_data_ptable), user_similarity, type='user')
 
 # game_rating_array = numpy.array(train_data_ptable.T)
@@ -90,4 +91,9 @@ def rmse(prediction, ground_truth):
     return sqrt(mean_squared_error(prediction, ground_truth))
 
 print('User-based CF RMSE: ' + str(rmse(user_prediction_matrix, numpy.array(test_data_ptable))))
+zeros = numpy.zeros((199, 402))
+all_sevens_matrix = zeros + 7
+print('All sevens rating system is RMSE ' + str(rmse(all_sevens_matrix, numpy.array(test_data_ptable))))
+weighted_sevens_matrix = (all_sevens_matrix + user_prediction_matrix) / 2
+print('Weighted sevens rating system is RMSE ' + str(rmse(weighted_sevens_matrix, numpy.array(test_data_ptable))))
 # print('Item-based CF RMSE: ' + str(rmse(item_prediction_matrix, test_data_array)))
