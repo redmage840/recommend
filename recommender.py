@@ -26,20 +26,24 @@ def derive_prediction_matrix(ratings_arr, user_simil):
 
 user_prediction_matrix = derive_prediction_matrix(ratings_array, user_similarity)
 
-# Takes 2 ints, returns a float, SHOULD round to nearest .5 somewhere
-# SHOULD ensure that a rating doesn't already exist
-def estimate_rating_prediction(userID, gameID):
+# Helper functions, round to a precision
+def round_to(n, precision):
+    correction = 0.5 if n >= 0 else -0.5
+    return int( n/precision+correction ) * precision
+def round_to_p5(n):
+    return round_to(n, 0.5)
+# Takes a float, ceilings it at 10.0, returns float
+def max_ten(some_float):
+    return 10.0 if some_float > 10 else some_float
+
+# Takes 2 ints, returns a float
+def predict_rating(userID, gameID):
     user_location = numpy.where(all_data_ptable.index.values == userID)
     game_location = numpy.where(all_data_ptable.columns == gameID)
-    return float(user_prediction_matrix[user_location, game_location])
-
-print([estimate_rating_prediction(388, x) for x in [9216, 39463, 46, 35677, 17226, 25613]])
-# print([estimate_rating_prediction(272, x) for x in train_data_ptable.columns])
-# compare the predictions with actual ratings
-# print(list(zip([estimate_rating_prediction(272, x) for x in train_data_ptable.columns], list(train_data_ptable.loc[(272,)]))))
+    return max_ten(round_to_p5(user_prediction_matrix[user_location, game_location]))
 
 # Takes an int userID and returns a list of 8 ints (gameIDs)
-def get_all_suggestions(userID):
+def get_top_suggestions(userID):
     rating_game_tuples = []
     for gameID in all_data_ptable.columns:
         if all_data_ptable.loc[(userID, gameID)] < .1:
@@ -47,8 +51,13 @@ def get_all_suggestions(userID):
             rating_game_tuples.append((rating, gameID))
     # return gameID list of highest 8 predicted ratings
     return [x[1] for x in sorted(rating_game_tuples, reverse = True)[:9]]
-
-print(get_all_suggestions(388))
+#**********************************************************************************************
+# TESTS / PRINTS / ASSERTS
+print([predict_rating(388, x) for x in [9216, 39463, 46, 35677, 17226, 25613]])
+print(get_top_suggestions(388))
+# print([predict_rating(272, x) for x in train_data_ptable.columns])
+# compare the predictions with actual ratings
+# print(list(zip([predict_rating(272, x) for x in train_data_ptable.columns], list(train_data_ptable.loc[(272,)]))))
 #**********************************************************************************************
 # EVALUATION, RMSE
 from math import sqrt
